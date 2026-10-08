@@ -1,11 +1,11 @@
 # Módulos
 
-Orden sugerido de construcción (MVP primero): `[ ]` pendiente.
+Orden sugerido de construcción (MVP primero): `[ ]` pendiente · `[~]` modelo de datos listo ([[ADR-0002-modelo-datos]]).
 
-1. [ ] **Proyectos** — datos generales, cliente, sistema/ERP, fechas, estado
+1. [~] **Proyectos** — datos generales, cliente, sistema/ERP, fechas, estado
 2. [ ] **Alcance** — entregables y exclusiones, baseline
-3. [ ] **Fases** — plantilla de fases (levantamiento, diseño, configuración, pruebas, capacitación, Go-Live, cierre)
-4. [ ] **Tareas** — responsable, fechas, estado, bloqueos, dependencias
+3. [~] **Fases** — plantilla de fases (levantamiento, diseño, configuración, pruebas, capacitación, Go-Live, cierre)
+4. [~] **Tareas** — responsable, fechas, estado, bloqueos, dependencias
 5. [ ] **Requerimientos** — trazables a tareas y pruebas
 6. [ ] **Riesgos** — probabilidad/impacto, mitigación
 7. [ ] **Control de cambios** — solicitud, impacto, aprobación del cliente
