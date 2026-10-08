@@ -13,8 +13,6 @@ services:
         sync: false
       - key: NHOST_ADMIN_SECRET
         sync: false
-      - key: NHOST_JWT_SECRET
-        sync: false
       - key: CORS_ORIGINS
         sync: false
   - type: web

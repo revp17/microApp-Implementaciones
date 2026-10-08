@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     nhost_subdomain: str = ""
     nhost_region: str = ""
     nhost_admin_secret: str = ""
-    nhost_jwt_secret: str = ""
 
     @property
     def cors_list(self) -> list[str]:

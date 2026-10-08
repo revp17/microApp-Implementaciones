@@ -10,6 +10,6 @@
 - Notificaciones: email inicialmente; WhatsApp/Telegram después
 
 ## Consecuencias
-- Nhost emite los JWT; FastAPI los valida con `NHOST_JWT_SECRET` y accede a datos con el admin secret solo en servidor.
+- Nhost emite los JWT. FastAPI **no** guarda el secreto JWT: reenvía el token del usuario a Nhost (Auth/GraphQL), que lo valida. El admin secret se usa solo en servidor.
 - Proyecto independiente de TcketsOne (Supabase): sin dependencias cruzadas.
 - Pendiente: decidir si el frontend consulta Nhost (GraphQL) directo o todo pasa por FastAPI → [[Preguntas-abiertas]].
