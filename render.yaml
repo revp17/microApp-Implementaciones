@@ -21,6 +21,13 @@ services:
     rootDir: frontend
     buildCommand: npm install && npm run build
     staticPublishPath: dist
+    envVars:
+      - key: VITE_NHOST_SUBDOMAIN
+        sync: false
+      - key: VITE_NHOST_REGION
+        sync: false
+      - key: VITE_API_URL
+        sync: false
     routes:
       - type: rewrite
         source: /*
