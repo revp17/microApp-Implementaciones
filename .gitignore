@@ -1,0 +1,13 @@
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.env
+.env.*
+!.env.example
+.DS_Store
+# Obsidian: versionar notas, no estado local del workspace
+vault/.obsidian/workspace*.json
+vault/.obsidian/cache
