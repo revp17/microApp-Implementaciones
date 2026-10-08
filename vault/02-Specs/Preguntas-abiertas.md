@@ -1,7 +1,7 @@
 # Preguntas abiertas
 
 - [ ] ¿Alcance del MVP? (propuesta: Proyectos, Fases, Tareas, Alertas)
-- [ ] ¿Multi-proyecto y multi-cliente desde el inicio?
+- [ ] ¿Multi-proyecto y multi-cliente desde el inicio? (ADR-0002 asume que sí)
 - [ ] ¿Cómo entran los usuarios del cliente (invitación por email, acceso por proyecto)?
 - [ ] ¿Plantillas de fases/tareas reutilizables entre proyectos?
 - [ ] ¿Reglas de alerta: umbrales de retraso, frecuencia, destinatarios?
