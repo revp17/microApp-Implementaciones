@@ -10,6 +10,14 @@ class Settings(BaseSettings):
     nhost_admin_secret: str = ""
 
     @property
+    def auth_url(self) -> str:
+        return f"https://{self.nhost_subdomain}.auth.{self.nhost_region}.nhost.run/v1"
+
+    @property
+    def graphql_url(self) -> str:
+        return f"https://{self.nhost_subdomain}.graphql.{self.nhost_region}.nhost.run/v1"
+
+    @property
     def cors_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
 

@@ -148,3 +148,21 @@ Regla común de fila: `proyecto_id` ∈ proyectos donde el usuario es miembro. C
 - Aprobación del cliente y evidencias en Nhost Storage (módulo Pruebas).
 - Canales WhatsApp/Telegram: añadir `canal` a `alertas`.
 - Particionar o archivar `eventos`.
+
+## Notas de implementación (módulo 1 · Proyectos, 2026-10-09)
+Implementado en `db/001_proyectos.sql` + `db/aplicar.py` (ver `db/README.md`). Estado de esta ADR sigue en propuesta. Cambios respecto al diseño:
+- `clientes` gana `creado_por` (not null, FK a `auth.users`): necesario para que quien crea un cliente lo vea antes de tener un proyecto con él.
+- `creado_por` (clientes y proyectos) se fija con preset de Hasura (`X-Hasura-User-Id`) + trigger `fijar_creado_por` que lo sobrescribe con `hasura.user`; además tiene `default usuario_actual()`. El campo no existe en el input del rol `user`.
+- Función auxiliar `usuario_actual()` (lee `hasura.user`); se reutilizará en `eventos` y en los demás triggers.
+- Checks añadidos: `nombre` no vacío y `fecha_fin_plan >= fecha_inicio`.
+- Insertar proyecto exige que el `cliente_id` sea visible para el usuario (evita colgar proyectos de clientes ajenos adivinando un uuid).
+- `eventos` y su trigger `registrar_evento()` existen ya, enganchados solo a `proyectos`. Permiso de lectura: miembros del proyecto (en este módulo todos los roles; el ADR dice responsable/colaborador, el rol `cliente` queda sin acceso cuando se implemente su UI).
+- Aún sin: trigger de 7 fases (módulo Fases), tablas de tareas/alertas, alta de miembros desde la UI, delete de proyectos.
+- Nhost exige email verificado: el registro no devuelve sesión hasta confirmar el correo.
+
+### Ajustes tras auditoría (módulo 1)
+- **Gestión de miembros en FastAPI** (primer uso del servidor, cumple [[ADR-0001-stack]]): `GET/POST /proyectos/{id}/miembros` y `DELETE /proyectos/{id}/miembros/{user_id}`. El JWT no se valida localmente: se reenvía a Nhost (`/v1/user` y GraphQL con ese token) para comprobar que el usuario es miembro/`responsable`. Con el admin secret (solo en servidor) se resuelve el email y se escribe en `proyecto_miembros`; el rol `user` de Hasura sigue sin permisos de escritura sobre miembros. Solo se asignan `colaborador` y `cliente`; no se puede quitar al último `responsable` ni hay cambio de roles. Un no-miembro recibe 404 (no se revela si el proyecto existe). Quien es responsable sí puede saber si un correo está registrado (404 en el alta): coste aceptado para dar un error claro.
+- Checks de longitud: `nombre` y `sistema` <= 200.
+- `eventos`: lectura solo para `responsable` y `colaborador` (excluye `cliente`, §3).
+- Insertar un proyecto con un cliente existente exige haber creado ese cliente o ser `responsable` de algún proyecto suyo (antes bastaba verlo).
+- **Riesgo conocido: registro abierto.** Nhost permite que cualquiera se registre; un usuario registrado puede crear clientes/proyectos propios (sin ver nada ajeno) y consumir almacenamiento. Política sin cambios por ahora; mitigar más adelante (registro por invitación, límites o desactivar signup).
