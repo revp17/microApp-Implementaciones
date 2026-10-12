@@ -85,22 +85,6 @@ export default function Proyectos({ userId }: { userId: string }) {
         </div>
       )}
       {visibles && <LineaTiempo proyectos={visibles} onAbrir={(id) => setVista({ tipo: 'detalle', id })} />}
-      <ul className="space-y-2">
-        {visibles?.map((p) => (
-          <li key={p.id}>
-            <button className="w-full text-left bg-white rounded-lg shadow-sm p-4 hover:shadow" onClick={() => setVista({ tipo: 'detalle', id: p.id })}>
-              <div className="flex items-center justify-between min-w-0">
-                <span className="font-medium text-slate-900 min-w-0 break-words">{p.nombre}</span>
-                <span className="text-xs rounded-full bg-slate-100 px-2 py-0.5 text-slate-700 shrink-0 ml-2">{ETIQUETA_ESTADO[p.estado]}</span>
-              </div>
-              <div className="text-sm text-slate-600 break-words">
-                {p.cliente.nombre}{p.sistema ? ` · ${p.sistema}` : ''}
-                {p.fecha_inicio || p.fecha_fin_plan ? ` · ${p.fecha_inicio ?? '?'} → ${p.fecha_fin_plan ?? '?'}` : ''}
-              </div>
-            </button>
-          </li>
-        ))}
-      </ul>
     </section>
   )
 }
