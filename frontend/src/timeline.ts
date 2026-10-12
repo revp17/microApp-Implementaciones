@@ -154,3 +154,27 @@ export function marcasEje(eje: Eje, max = 5): { pos: number; etiqueta: string }[
   }
   return [{ pos: 0, etiqueta: fmt(eje.inicio) }, { pos: 100, etiqueta: fmt(eje.fin) }]
 }
+
+// ---- Selección de proyectos de la pantalla principal ----
+
+export const MAX_PROYECTOS = 3
+/** 'activos' = Planificado + En curso (valor por defecto); 'todos' = cualquier estatus; o un estado concreto. */
+export const ESTADOS_ACTIVOS = ['planificado', 'en_curso']
+
+/** Filtra por estatus y recorta a `max` (Infinity = sin tope) conservando el orden recibido. `total` = cuántos cumplen el filtro. */
+export function seleccionarProyectos<T extends { estado: string }>(
+  lista: T[],
+  filtro: string,
+  max = MAX_PROYECTOS,
+): { visibles: T[]; total: number } {
+  const cumplen = lista.filter((p) =>
+    filtro === 'todos' ? true : filtro === 'activos' ? ESTADOS_ACTIVOS.includes(p.estado) : p.estado === filtro,
+  )
+  return { visibles: cumplen.slice(0, max), total: cumplen.length }
+}
+
+/** Nota de la selección; null si no hay más proyectos que el tope. Recortado: "los 3 más recientes de N"; expandido: "los N". */
+export function notaRecorte(mostrados: number, total: number, max = MAX_PROYECTOS): string | null {
+  if (total <= max) return null
+  return mostrados < total ? `Mostrando los ${mostrados} más recientes de ${total} proyectos.` : `Mostrando los ${total} proyectos.`
+}

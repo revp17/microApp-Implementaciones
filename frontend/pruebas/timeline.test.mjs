@@ -132,3 +132,57 @@ test('marcas del eje respetan el máximo pedido (anchos estrechos)', () => {
   assert.ok(estrecho.length <= ancho.length)
   assert.deepEqual(marcasEje(eje, 1).map((m) => m.pos), [0, 100])
 })
+
+import { seleccionarProyectos, notaRecorte } from '../src/timeline.ts'
+const mk = (n, estado) => ({ id: String(n), estado })
+const MIX = [mk(1, 'cerrado'), mk(2, 'en_curso'), mk(3, 'pausado'), mk(4, 'planificado'), mk(5, 'en_curso'), mk(6, 'planificado')]
+const ids = (r) => r.visibles.map((p) => p.id)
+test('selección: 0, 1, 3 y 4+ proyectos', () => {
+  assert.deepEqual(seleccionarProyectos([], 'activos'), { visibles: [], total: 0 })
+  assert.deepEqual(ids(seleccionarProyectos([mk(1, 'en_curso')], 'activos')), ['1'])
+  const tres = [mk(1, 'en_curso'), mk(2, 'planificado'), mk(3, 'en_curso')]
+  assert.deepEqual(seleccionarProyectos(tres, 'activos').total, 3)
+  assert.equal(seleccionarProyectos(tres, 'activos').visibles.length, 3)
+  const cuatro = seleccionarProyectos([...tres, mk(4, 'en_curso')], 'activos')
+  assert.equal(cuatro.visibles.length, 3); assert.equal(cuatro.total, 4)
+})
+test('"activos" excluye pausado y cerrado y conserva el orden', () => {
+  const r = seleccionarProyectos(MIX, 'activos')
+  assert.deepEqual(ids(r), ['2', '4', '5'])   // 6 queda fuera por el tope
+  assert.equal(r.total, 4)
+})
+test('cada estatus y "todos"', () => {
+  assert.deepEqual(ids(seleccionarProyectos(MIX, 'cerrado')), ['1'])
+  assert.deepEqual(ids(seleccionarProyectos(MIX, 'pausado')), ['3'])
+  assert.deepEqual(ids(seleccionarProyectos(MIX, 'planificado')), ['4', '6'])
+  assert.deepEqual(ids(seleccionarProyectos(MIX, 'en_curso')), ['2', '5'])
+  const todos = seleccionarProyectos(MIX, 'todos')
+  assert.deepEqual(ids(todos), ['1', '2', '3']); assert.equal(todos.total, 6)
+  assert.equal(seleccionarProyectos([mk(1, 'cerrado')], 'activos').total, 0)
+})
+test('nota "Mostrando k de N"', () => {
+  assert.equal(notaRecorte(3, 4), 'Mostrando los 3 más recientes de 4 proyectos.')
+  assert.equal(notaRecorte(4, 4), 'Mostrando los 4 proyectos.')
+  assert.equal(notaRecorte(3, 3), null)
+  assert.equal(notaRecorte(0, 0), null)
+})
+
+test('ver todos: 4 y 100 proyectos, recortado y expandido, orden preservado', () => {
+  const lista = (n) => Array.from({ length: n }, (_, i) => mk(i + 1, 'en_curso'))
+  const c4 = seleccionarProyectos(lista(4), 'activos')
+  assert.deepEqual(ids(c4), ['1', '2', '3']); assert.equal(c4.total, 4)
+  const e4 = seleccionarProyectos(lista(4), 'activos', Infinity)
+  assert.deepEqual(ids(e4), ['1', '2', '3', '4'])
+  const c100 = seleccionarProyectos(lista(100), 'activos')
+  assert.equal(c100.visibles.length, 3); assert.equal(c100.total, 100)
+  const e100 = seleccionarProyectos(lista(100), 'activos', Infinity)
+  assert.equal(e100.visibles.length, 100)
+  assert.deepEqual(ids(e100).slice(0, 5), ['1', '2', '3', '4', '5'])
+  assert.equal(notaRecorte(c100.visibles.length, c100.total), 'Mostrando los 3 más recientes de 100 proyectos.')
+  assert.equal(notaRecorte(e100.visibles.length, e100.total), 'Mostrando los 100 proyectos.')
+})
+test('3 exactos: sin nota ni botón (total <= tope)', () => {
+  const r = seleccionarProyectos([mk(1, 'en_curso'), mk(2, 'en_curso'), mk(3, 'planificado')], 'activos')
+  assert.equal(notaRecorte(r.visibles.length, r.total), null)
+  assert.equal(r.total > 3, false)
+})
