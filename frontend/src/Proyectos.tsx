@@ -60,7 +60,7 @@ export default function Proyectos({ userId }: { userId: string }) {
           {proyectos && proyectos.length > 0 && (
             <div className="min-w-0">
               <label className="label" htmlFor="filtro-estatus">Estatus</label>
-              <select id="filtro-estatus" className="input bg-white" value={estatus} onChange={(e) => { setEstatus(e.target.value); setExpandido(false) }}>
+              <select id="filtro-estatus" className="input bg-white" value={estatus} onChange={(e) => { setEstatus(e.target.value); setExpandido(false); setFiltro('') }}>
                 <option value="activos">Activos (Planificado y En curso)</option>
                 {ESTADOS.map((e) => <option key={e} value={e}>{ETIQUETA_ESTADO[e]}</option>)}
                 <option value="todos">Todos</option>
@@ -74,7 +74,9 @@ export default function Proyectos({ userId }: { userId: string }) {
       {proyectos === null && !error && <p className="text-slate-500">Cargando…</p>}
       {proyectos?.length === 0 && <p className="text-slate-500">Aún no tienes proyectos. Crea el primero.</p>}
       {proyectos && proyectos.length > 0 && total === 0 && (
-        <p className="text-slate-500">No hay proyectos en estatus {etiquetaEstatus}.</p>
+        <p className="text-slate-500">
+          No hay proyectos en estatus {etiquetaEstatus}. Cambia el filtro «Estatus» (arriba) a otro estatus o a «Todos» para ver el resto.
+        </p>
       )}
       <div className={hayMas ? 'flex flex-wrap items-center gap-x-3 gap-y-1 mb-3' : ''} role="status">
         {nota && <span className="text-sm text-slate-600">{nota}</span>}

@@ -38,7 +38,7 @@ Login / Registro ──► Pantalla principal (timeline) ──┬──► Nuev
 - **Tope de 3:** solo se muestran los 3 proyectos más recientes del estatus elegido. Si hay más, aparece "Mostrando los 3 más recientes de N proyectos." y el botón "Ver todos (N)"; al pulsarlo se ven todos (aviso "Mostrando los N proyectos.") y el botón pasa a "Ver solo los 3 más recientes". Al cambiar de estatus se vuelve al tope de 3.
 - **Proyecto:** selector "Todos los proyectos" o uno concreto, que deja en el timeline solo ese proyecto. Ofrece únicamente los proyectos visibles con el estatus y el tope vigentes.
 - **Timeline:** una fila por proyecto con su nombre (clic abre el detalle), etiqueta de estatus y cliente; bajo ellos, el avance del plazo y la barra.
-- Mensajes: "Cargando…", "Aún no tienes proyectos. Crea el primero." y "No hay proyectos en estatus X." cuando el filtro no encuentra ninguno.
+- Mensajes: "Cargando…", "Aún no tienes proyectos. Crea el primero." y "No hay proyectos en estatus X. Cambia el filtro «Estatus» (arriba) a otro estatus o a «Todos» para ver el resto." cuando el filtro no encuentra ninguno.
 
 **Cómo leer cada fila**
 - **Barra:** va de la fecha de inicio a la de fin planificado; el relleno muestra el tiempo transcurrido. Una línea roja marca **"Hoy · fecha"** (la fecha de hoy aparece arriba, sobre el eje).
@@ -65,7 +65,7 @@ Login / Registro ──► Pantalla principal (timeline) ──┬──► Nuev
 - **Nombre del proyecto** (obligatorio, máx. 200), **Sistema / ERP** (opcional, máx. 200), **Inicio** y **Fin planificado** (opcionales; el fin no puede ser anterior al inicio), **Estado** (Planificado por defecto).
 - Botones "Crear proyecto" y "Cancelar".
 - Si falla la creación del proyecto tras crear el cliente nuevo, al reintentar se reutiliza ese cliente (no se duplica).
-- **Al guardar** se vuelve a la pantalla principal y el proyecto nuevo queda siempre visible: si es Planificado o En curso, el estatus pasa a "Activos" (salvo que ya se viera); si es Pausado o Cerrado, el estatus pasa a ese estado; además el selector "Proyecto" vuelve a "Todos los proyectos" y se quita el tope de 3.
+- **Al guardar** se vuelve a la pantalla principal y el proyecto nuevo queda siempre visible: si es Planificado o En curso, el estatus pasa a "Activos" (salvo que ya se viera); si es Pausado o Cerrado, el estatus pasa a ese estado; además el selector "Proyecto" vuelve a "Todos los proyectos" y el tope vuelve a 3 (sin "Ver todos" expandido). Al cambiar el filtro de estatus manualmente, el selector "Proyecto" también vuelve a "Todos los proyectos".
 
 **Quién puede usarlo:** cualquier usuario con sesión.
 **Reglas importantes:** quien crea el proyecto queda automáticamente como **responsable**. Un cliente existente solo puede usarse si lo creó la persona o es responsable de algún proyecto de ese cliente. Un proyecto sin fechas se crea sin problema, pero no tendrá barra en el timeline.
@@ -122,7 +122,7 @@ Login / Registro ──► Pantalla principal (timeline) ──┬──► Nuev
 | No se pudo contactar con Nhost / Respuesta no válida de Nhost / Error consultando la base de datos | Falla temporal del servicio; reintentar |
 | Error NNN | Error del servidor sin detalle |
 | Aún no tienes proyectos. Crea el primero. | La persona no es miembro de ningún proyecto |
-| No hay proyectos en estatus X. | Hay proyectos, pero ninguno con el estatus elegido en el filtro |
+| No hay proyectos en estatus X. Cambia el filtro «Estatus»… | Hay proyectos, pero ninguno con el estatus elegido; el texto indica cómo ver los demás (otro estatus o «Todos») |
 | Mostrando los 3 más recientes de N proyectos. | Hay más proyectos que el tope; usar "Ver todos (N)" |
 | Sin fechas planificadas · abre el proyecto para definirlas | El proyecto no tiene inicio y/o fin; no se puede dibujar la barra |
 | El fin es anterior al inicio · abre el proyecto para corregirlo | Las fechas están invertidas; no se puede dibujar la barra |
