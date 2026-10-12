@@ -178,3 +178,26 @@ export function notaRecorte(mostrados: number, total: number, max = MAX_PROYECTO
   if (total <= max) return null
   return mostrados < total ? `Mostrando los ${mostrados} más recientes de ${total} proyectos.` : `Mostrando los ${total} proyectos.`
 }
+
+// ---- Filas del timeline y ajustes tras crear un proyecto ----
+
+export interface FilaTimeline<T> { p: T; r: ResultadoBarra; dibujable: boolean }
+
+/** Una fila por proyecto, en el mismo orden recibido; `dibujable` = tiene fechas válidas (inicio <= fin). */
+export function clasificarFilas<T extends { fecha_inicio: string | null; fecha_fin_plan: string | null; estado: string }>(
+  lista: T[],
+  hoy: Date,
+): FilaTimeline<T>[] {
+  return lista.map((p) => {
+    const r = calcularBarra(p, hoy)
+    return { p, r, dibujable: r.estado !== 'sin_fechas' && r.estado !== 'fechas_invertidas' }
+  })
+}
+
+/** Qué estado de la pantalla principal hay que fijar para que un proyecto recién creado se vea sí o sí. */
+export function ajustesTrasCrear(estadoCreado: string, estatusActual: string): { estatus: string; filtroProyecto: ''; expandido: false } {
+  const activo = ESTADOS_ACTIVOS.includes(estadoCreado)
+  const entra = estatusActual === 'todos' || estatusActual === estadoCreado || (estatusActual === 'activos' && activo)
+  const estatus = entra ? estatusActual : activo ? 'activos' : estadoCreado
+  return { estatus, filtroProyecto: '', expandido: false }
+}

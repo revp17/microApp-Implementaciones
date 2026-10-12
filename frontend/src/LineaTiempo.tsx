@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 import { ETIQUETA_ESTADO, type Proyecto } from './tipos'
 import {
-  calcularBarra, diaDelPlazo, formatoFecha, lugarPorcentaje, marcasEje, parseFecha, porcentajeVisible, posicion, rangoEje, restanteBarra, soloFecha,
+  clasificarFilas, diaDelPlazo, formatoFecha, lugarPorcentaje, marcasEje, parseFecha, porcentajeVisible, posicion, rangoEje, restanteBarra, soloFecha,
   tramoBarra, tramoRetraso,
   type EstadoBarra,
 } from './timeline'
@@ -54,14 +54,12 @@ export default function LineaTiempo({ proyectos, onAbrir }: { proyectos: Proyect
     return () => obs.disconnect()
   })
 
-  const { barras, aparte, eje } = useMemo(() => {
-    const filas = proyectos.map((p) => ({ p, r: calcularBarra(p, hoy) }))
-    const barras = filas.filter((f) => f.r.estado !== 'sin_fechas' && f.r.estado !== 'fechas_invertidas')
-    const aparte = filas.filter((f) => !barras.includes(f))
-    const tramos = barras.map((f) => ({ inicio: parseFecha(f.p.fecha_inicio)!, fin: parseFecha(f.p.fecha_fin_plan)! }))
+  // Una fila por proyecto en el orden de la selección; el eje solo considera los que tienen fechas válidas.
+  const { filas, eje } = useMemo(() => {
+    const filas = clasificarFilas(proyectos, hoy)
+    const tramos = filas.filter((f) => f.dibujable).map((f) => ({ inicio: parseFecha(f.p.fecha_inicio)!, fin: parseFecha(f.p.fecha_fin_plan)! }))
     // El eje siempre incluye hoy para poder comparar contra la fecha actual.
-    const eje = rangoEje(tramos, hoy)
-    return { barras, aparte, eje }
+    return { filas, eje: rangoEje(tramos, hoy) }
   }, [proyectos, hoy])
 
   if (proyectos.length === 0) return null
@@ -79,9 +77,8 @@ export default function LineaTiempo({ proyectos, onAbrir }: { proyectos: Proyect
         El porcentaje es el <strong>avance del plazo</strong> (tiempo transcurrido del plan), no el avance del trabajo.
       </p>
 
+      {/* Eje de tiempo común (solo con proyectos con fechas): marcas de mes abajo y la fecha de hoy una sola vez arriba */}
       {eje && (
-        <>
-          {/* Eje de tiempo común: marcas de mes abajo y la fecha de hoy una sola vez arriba */}
           <div ref={refEje} className="relative h-10 mb-2 text-xs text-slate-500 border-b border-slate-200">
             {marcas.map((m) => (
               <span
@@ -95,9 +92,33 @@ export default function LineaTiempo({ proyectos, onAbrir }: { proyectos: Proyect
             ))}
             <span className="absolute top-0 whitespace-nowrap text-xs font-semibold text-red-700" style={estiloHoy}>Hoy · {fechaHoy}</span>
           </div>
+      )}
 
-          <ul className="space-y-6">
-            {barras.map(({ p, r }) => {
+      <ul className="space-y-6">
+            {filas.map(({ p, r, dibujable }) => {
+              if (!eje || !dibujable) {
+                const invertida = r.estado === 'fechas_invertidas'
+                const aviso = invertida
+                  ? 'El fin es anterior al inicio · abre el proyecto para corregirlo'
+                  : 'Sin fechas planificadas · abre el proyecto para definirlas'
+                return (
+                  <li key={p.id}>
+                    <div className="flex flex-wrap items-center gap-x-2">
+                      <button
+                        className="font-medium text-slate-900 hover:underline text-left min-w-0 max-w-full break-words"
+                        aria-label={`${p.nombre}, cliente ${p.cliente.nombre}, ${ETIQUETA_ESTADO[p.estado]}. ${invertida ? 'Fechas inválidas: el fin es anterior al inicio.' : 'Sin fechas planificadas.'} Abrir detalle.`}
+                        onClick={() => onAbrir(p.id)}
+                      >
+                        {p.nombre}
+                      </button>
+                      <span className="text-xs rounded-full bg-slate-100 px-2 py-0.5 text-slate-700 shrink-0">{ETIQUETA_ESTADO[p.estado]}</span>
+                    </div>
+                    <div className="text-sm text-slate-600 min-w-0 break-words">{p.cliente.nombre}</div>
+                    <div className="text-sm font-medium text-amber-700 break-words">{aviso}</div>
+                    <div aria-hidden="true" onClick={() => onAbrir(p.id)} className="w-full h-8 mt-1 rounded bg-slate-100 cursor-pointer" />
+                  </li>
+                )
+              }
               const ini = parseFecha(p.fecha_inicio)!
               const fin = parseFecha(p.fecha_fin_plan)!
               const { izq, ancho } = tramoBarra(ini, fin, eje)
@@ -177,29 +198,8 @@ export default function LineaTiempo({ proyectos, onAbrir }: { proyectos: Proyect
                 </li>
               )
             })}
-          </ul>
-        </>
-      )}
+      </ul>
 
-      {!eje && <p className="text-sm text-slate-500">Ningún proyecto tiene fechas válidas para dibujar el timeline.</p>}
-
-      {aparte.length > 0 && (
-        <div className="mt-4 rounded border border-amber-300 bg-amber-50 p-3">
-          <h3 className="text-sm font-medium text-amber-800">Sin fechas planificadas ({aparte.length})</h3>
-          <p className="text-xs text-amber-800 mb-1">No se pueden dibujar. Abre el proyecto para completar o corregir las fechas.</p>
-          <ul className="text-sm">
-            {aparte.map(({ p, r }) => (
-              <li key={p.id} className="min-w-0 break-words">
-                <button className="text-blue-700 hover:underline text-left min-w-0 max-w-full break-words" onClick={() => onAbrir(p.id)}>
-                  {p.nombre}
-                </button>
-                <span className="text-slate-600"> · {p.cliente.nombre}</span>
-                {r.estado === 'fechas_invertidas' && <span className="text-amber-800"> · el fin es anterior al inicio</span>}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
     </section>
   )
 }

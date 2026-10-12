@@ -4,7 +4,7 @@ import ProyectoDetalle from './ProyectoDetalle'
 import ProyectoNuevo from './ProyectoNuevo'
 import LineaTiempo from './LineaTiempo'
 import { CAMPOS_PROYECTO, ESTADOS, ETIQUETA_ESTADO, type Proyecto } from './tipos'
-import { MAX_PROYECTOS, notaRecorte, seleccionarProyectos } from './timeline'
+import { ajustesTrasCrear, MAX_PROYECTOS, notaRecorte, seleccionarProyectos } from './timeline'
 
 export default function Proyectos({ userId }: { userId: string }) {
   const [proyectos, setProyectos] = useState<Proyecto[] | null>(null)
@@ -40,7 +40,16 @@ export default function Proyectos({ userId }: { userId: string }) {
 
   const volver = () => { setVista({ tipo: 'lista' }); cargar() }
 
-  if (vista.tipo === 'nuevo') return <ProyectoNuevo onListo={volver} onCancelar={() => setVista({ tipo: 'lista' })} />
+  // Tras crear: se ajusta el estatus (si hace falta), "Todos los proyectos" y el tope, para que el nuevo se vea sí o sí.
+  const alCrear = (creado: { id: string; estado: string }) => {
+    const a = ajustesTrasCrear(creado.estado, estatus)
+    setEstatus(a.estatus)
+    setFiltro(a.filtroProyecto)
+    setExpandido(a.expandido)
+    volver()
+  }
+
+  if (vista.tipo === 'nuevo') return <ProyectoNuevo onListo={alCrear} onCancelar={() => setVista({ tipo: 'lista' })} />
   if (vista.tipo === 'detalle') return <ProyectoDetalle id={vista.id} userId={userId} onVolver={volver} />
 
   return (

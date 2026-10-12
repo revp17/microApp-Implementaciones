@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import CamposProyecto, { aInput, type Datos } from './CamposProyecto'
 import { gql, mensajeError } from './nhost'
-import type { Cliente } from './tipos'
+import type { Cliente, Estado } from './tipos'
 
 const NUEVO = '__nuevo__'
 
-export default function ProyectoNuevo({ onListo, onCancelar }: { onListo: () => void; onCancelar: () => void }) {
+export default function ProyectoNuevo({ onListo, onCancelar }: { onListo: (creado: { id: string; estado: Estado }) => void; onCancelar: () => void }) {
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [clienteId, setClienteId] = useState(NUEVO)
   const [clienteNuevo, setClienteNuevo] = useState('')
@@ -36,11 +36,11 @@ export default function ProyectoNuevo({ onListo, onCancelar }: { onListo: () => 
         cid = r.insert_clientes_one.id
         setClienteCreado(cid)
       }
-      await gql(
-        'mutation($o: proyectos_insert_input!) { insert_proyectos_one(object: $o) { id } }',
+      const r = await gql<{ insert_proyectos_one: { id: string; estado: Estado } }>(
+        'mutation($o: proyectos_insert_input!) { insert_proyectos_one(object: $o) { id estado } }',
         { o: { ...aInput(datos), cliente_id: cid } },
       )
-      onListo()
+      onListo(r.insert_proyectos_one)
     } catch (err) {
       setError(mensajeError(err))
       setGuardando(false)

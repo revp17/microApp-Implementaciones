@@ -186,3 +186,35 @@ test('3 exactos: sin nota ni botón (total <= tope)', () => {
   assert.equal(notaRecorte(r.visibles.length, r.total), null)
   assert.equal(r.total > 3, false)
 })
+
+import { ajustesTrasCrear, clasificarFilas } from '../src/timeline.ts'
+test('tras crear: el nuevo entra en el filtro actual o se ajusta el estatus', () => {
+  // planificado con filtro actual que no lo incluye -> Activos
+  assert.deepEqual(ajustesTrasCrear('planificado', 'pausado'), { estatus: 'activos', filtroProyecto: '', expandido: false })
+  assert.equal(ajustesTrasCrear('planificado', 'cerrado').estatus, 'activos')
+  assert.equal(ajustesTrasCrear('en_curso', 'planificado').estatus, 'activos')
+  // ya entra: se conserva
+  assert.equal(ajustesTrasCrear('planificado', 'activos').estatus, 'activos')
+  assert.equal(ajustesTrasCrear('planificado', 'planificado').estatus, 'planificado')
+  assert.equal(ajustesTrasCrear('planificado', 'todos').estatus, 'todos')
+  // no activo: va a su estatus concreto salvo que ya se vea
+  assert.equal(ajustesTrasCrear('pausado', 'activos').estatus, 'pausado')
+  assert.equal(ajustesTrasCrear('cerrado', 'en_curso').estatus, 'cerrado')
+  assert.equal(ajustesTrasCrear('cerrado', 'todos').estatus, 'todos')
+  // siempre reinicia el selector Proyecto y el tope
+  assert.equal(ajustesTrasCrear('pausado', 'pausado').filtroProyecto, '')
+  assert.equal(ajustesTrasCrear('pausado', 'pausado').expandido, false)
+})
+test('el recién creado (primero por creado_en desc) cabe en el tope tras ajustar', () => {
+  const lista = [mk(9, 'planificado'), mk(1, 'en_curso'), mk(2, 'en_curso'), mk(3, 'planificado'), mk(4, 'pausado')]
+  const { estatus } = ajustesTrasCrear('planificado', 'pausado')
+  assert.equal(ids(seleccionarProyectos(lista, estatus))[0], '9')
+})
+test('filas del timeline: con y sin fechas en el mismo orden', () => {
+  const f = (id, ini, fin) => ({ id, estado: 'en_curso', fecha_inicio: ini, fecha_fin_plan: fin })
+  const filas = clasificarFilas([f('a', null, null), f('b', '2026-10-01', '2026-10-31'), f('c', '2026-10-10', '2026-10-01'), f('d', '2026-10-01', null)], d('2026-10-16'))
+  assert.deepEqual(filas.map((x) => x.p.id), ['a', 'b', 'c', 'd'])
+  assert.deepEqual(filas.map((x) => x.dibujable), [false, true, false, false])
+  assert.deepEqual(filas.map((x) => x.r.estado), ['sin_fechas', 'en_curso', 'fechas_invertidas', 'sin_fechas'])
+  assert.equal(clasificarFilas([], d('2026-10-16')).length, 0)
+})
