@@ -63,16 +63,49 @@ export function calcularBarra(
 
 const plural = (n: number) => `${n} ${n === 1 ? 'día' : 'días'}`
 
-/** Texto breve en español para la barra. */
-export function resumenBarra(r: ResultadoBarra): string {
+/** Texto corto de plazo restante (sin porcentaje, que se muestra aparte en grande). */
+export function restanteBarra(r: ResultadoBarra): string {
   switch (r.estado) {
     case 'antes': return `Inicia en ${plural(r.dias)}`
-    case 'en_curso': return `${r.pct}% transcurrido · ${r.dias === 0 ? 'vence hoy' : `quedan ${plural(r.dias)}`}`
+    case 'en_curso': return r.dias === 0 ? 'Vence hoy' : `Quedan ${plural(r.dias)}`
     case 'vencido': return `${plural(r.dias)} de retraso`
-    case 'cerrado': return `Cerrado · ${r.pct}% del plazo`
-    case 'fechas_invertidas': return 'La fecha de fin es anterior al inicio'
-    default: return 'Sin fechas planificadas'
+    case 'cerrado': return 'Cerrado'
+    default: return ''
   }
+}
+
+/** "Día X de Y" del plazo (conteo inclusivo: el día de inicio es el día 1). null si las fechas no sirven. */
+export function diaDelPlazo(ini: Date, fin: Date, hoy: Date): { dia: number; total: number } | null {
+  const total = diasEntre(ini, fin) + 1
+  if (total < 1) return null
+  const dia = Math.min(total, Math.max(0, diasEntre(ini, hoy) + 1))
+  return { dia, total }
+}
+
+/** Barra de un proyecto en el eje (en %): el ancho mínimo es 1 y nunca sobresale del carril. */
+export function tramoBarra(ini: Date, fin: Date, eje: Eje): { izq: number; ancho: number } {
+  const ancho = Math.min(100, Math.max(posicion(fin, eje) - posicion(ini, eje), 1))
+  return { izq: Math.min(posicion(ini, eje), 100 - ancho), ancho }
+}
+
+/** Dónde dibujar el % dentro de la barra: sobre el relleno, sobre la pista restante o en ningún sitio (si no cabe). */
+export function lugarPorcentaje(ancho: number, pct: number, minimo = 15): 'relleno' | 'pista' | null {
+  if ((ancho * pct) / 100 >= minimo) return 'relleno'
+  if ((ancho * (100 - pct)) / 100 >= minimo) return 'pista'
+  return null
+}
+
+/** Porcentaje de avance del plazo a mostrar; null si no aplica (proyecto cerrado). */
+export function porcentajeVisible(r: ResultadoBarra): number | null {
+  return r.estado === 'cerrado' ? null : r.pct
+}
+
+/** Tramo de retraso en el eje (de fin a hoy), en %; null si hoy no pasó el fin. */
+export function tramoRetraso(fin: Date, hoy: Date, eje: Eje): { izq: number; ancho: number } | null {
+  if (diasEntre(fin, hoy) <= 0) return null
+  const izq = posicion(fin, eje)
+  const ancho = posicion(hoy, eje) - izq
+  return ancho > 0 ? { izq, ancho } : null
 }
 
 /** Formato corto y estable: 5 mar 2026. */
@@ -105,8 +138,8 @@ export function posicion(f: Date, eje: Eje): number {
   return Math.min(100, Math.max(0, (diasEntre(eje.inicio, f) / eje.dias) * 100))
 }
 
-/** Marcas del eje: inicios de mes (cada 1, 2, 3, 6 o 12 meses, máx. 5); si no hay ≥2, inicio y fin. */
-export function marcasEje(eje: Eje): { pos: number; etiqueta: string }[] {
+/** Marcas del eje: inicios de mes (cada 1, 2, 3, 6... meses, entre 2 y `max`); si no se puede, inicio y fin. */
+export function marcasEje(eje: Eje, max = 5): { pos: number; etiqueta: string }[] {
   const fmt = (f: Date) => `${f.getDate()} ${MESES[f.getMonth()]} ${f.getFullYear()}`
   if (eje.dias <= 0) return [{ pos: 0, etiqueta: fmt(eje.inicio) }]
   const meses: Date[] = []
@@ -115,7 +148,7 @@ export function marcasEje(eje: Eje): { pos: number; etiqueta: string }[] {
   }
   for (const paso of [1, 2, 3, 6, 12, 24, 60]) {
     const usadas = meses.filter((f) => (f.getFullYear() * 12 + f.getMonth()) % paso === 0)
-    if (usadas.length >= 2 && usadas.length <= 5) {
+    if (usadas.length >= 2 && usadas.length <= max) {
       return usadas.map((f) => ({ pos: posicion(f, eje), etiqueta: `${MESES[f.getMonth()]} ${f.getFullYear()}` }))
     }
   }
