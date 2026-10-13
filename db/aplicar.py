@@ -40,7 +40,7 @@ soy_responsable = {"miembros": {"_and": [{"user_id": {"_eq": ME}}, {"rol": {"_eq
 cliente_visible = {"_or": [{"creado_por": {"_eq": ME}}, {"proyectos": soy_miembro}]}
 # para colgar un proyecto nuevo de un cliente: lo creé yo o soy responsable en algún proyecto suyo
 cliente_usable = {"_or": [{"creado_por": {"_eq": ME}}, {"proyectos": soy_responsable}]}
-COLS_EDITABLES = ["nombre", "sistema", "fecha_inicio", "fecha_fin_plan", "estado"]
+COLS_EDITABLES = ["nombre", "sistema", "fecha_inicio", "fecha_fin_plan", "estado", "requiere_desarrollo"]
 
 
 def perm(tipo, tabla, permission):
@@ -63,6 +63,8 @@ relaciones = [
     ("proyectos", "miembros", rel_arr("proyectos", "miembros", "proyecto_miembros", "proyecto_id")),
     ("clientes", "proyectos", rel_arr("clientes", "proyectos", "proyectos", "cliente_id")),
     ("proyecto_miembros", "proyecto", rel_obj("proyecto_miembros", "proyecto", "proyecto_id")),
+    ("fases", "proyecto", rel_obj("fases", "proyecto", "proyecto_id")),
+    ("proyectos", "fases", rel_arr("proyectos", "fases", "fases", "proyecto_id")),
 ]
 
 permisos = []
@@ -91,6 +93,18 @@ permisos += perm("select", "eventos", {
         {"rol": {"_in": ["responsable", "colaborador"]}}]}}},
     "columns": ["id", "entidad", "entidad_id", "proyecto_id", "accion", "usuario_id", "antes", "despues", "creado_en"],
 })
+# fases (ADR-0003 §2): las ven los miembros; solo el responsable cambia estado y fechas.
+# Sin insert ni delete: las crea/borra la BD (triggers de proyectos).
+permisos += perm("select", "fases", {
+    "filter": {"proyecto": soy_miembro},
+    "columns": ["id", "proyecto_id", "clave", "nombre", "orden", "fecha_inicio", "fecha_fin_plan",
+                "estado", "creado_en", "actualizado_en"],
+})
+permisos += perm("update", "fases", {
+    "filter": {"proyecto": soy_responsable},
+    "check": {"proyecto": soy_responsable},
+    "columns": ["estado", "fecha_inicio", "fecha_fin_plan"],
+})
 
 
 def bulk(args):
@@ -112,7 +126,7 @@ def main():
     for f in sorted(glob.glob(os.path.join(os.path.dirname(__file__), "[0-9]*.sql"))):
         print("SQL:", os.path.basename(f))
         sql(open(f, encoding="utf-8").read())
-    tablas = ["clientes", "proyectos", "proyecto_miembros", "eventos"]
+    tablas = ["clientes", "proyectos", "proyecto_miembros", "eventos", "fases"]
     bulk([{"type": "pg_track_table", "args": {"source": "default", "table": T(t)}} for t in tablas])
     bulk([r for _, _, r in relaciones])
     bulk(list(permisos))

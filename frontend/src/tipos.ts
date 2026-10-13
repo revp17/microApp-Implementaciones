@@ -1,3 +1,5 @@
+import type { Fase } from './fases.ts'
+
 export const ESTADOS = ['planificado', 'en_curso', 'pausado', 'cerrado'] as const
 export type Estado = (typeof ESTADOS)[number]
 
@@ -22,7 +24,11 @@ export interface Proyecto {
   estado: Estado
   cliente: Cliente
   miembros: { user_id: string; rol: 'responsable' | 'colaborador' | 'cliente' }[]
+  requiere_desarrollo: boolean
+  /** Ordenadas por `orden` asc (order_by en la consulta). */
+  fases: Fase[]
 }
 
-export const CAMPOS_PROYECTO = `id nombre sistema fecha_inicio fecha_fin_plan estado
-  cliente { id nombre } miembros { user_id rol }`
+export const CAMPOS_PROYECTO = `id nombre sistema fecha_inicio fecha_fin_plan estado requiere_desarrollo
+  cliente { id nombre } miembros { user_id rol }
+  fases(order_by: {orden: asc}) { id clave nombre orden estado fecha_inicio fecha_fin_plan }`

@@ -9,7 +9,7 @@ export default function ProyectoNuevo({ onListo, onCancelar }: { onListo: (cread
   const [clientes, setClientes] = useState<Cliente[]>([])
   const [clienteId, setClienteId] = useState(NUEVO)
   const [clienteNuevo, setClienteNuevo] = useState('')
-  const [datos, setDatos] = useState<Datos>({ nombre: '', sistema: '', fecha_inicio: '', fecha_fin_plan: '', estado: 'planificado' })
+  const [datos, setDatos] = useState<Datos>({ nombre: '', sistema: '', fecha_inicio: '', fecha_fin_plan: '', estado: 'planificado', requiere_desarrollo: false })
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
   const [clienteCreado, setClienteCreado] = useState('') // evita duplicar el cliente si falla el proyecto y se reintenta

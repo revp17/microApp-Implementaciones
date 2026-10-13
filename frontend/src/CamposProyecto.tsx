@@ -1,3 +1,5 @@
+import { useId } from 'react'
+import { MSG_DESARROLLO_BLOQUEADO } from './fases.ts'
 import { ESTADOS, ETIQUETA_ESTADO, type Estado } from './tipos'
 
 export interface Datos {
@@ -6,11 +8,22 @@ export interface Datos {
   fecha_inicio: string
   fecha_fin_plan: string
   estado: Estado
+  requiere_desarrollo: boolean
 }
 
+type ClaveTexto = Exclude<keyof Datos, 'requiere_desarrollo'>
+
 // Campos comunes de crear/editar. `disabled` = solo lectura.
-export default function CamposProyecto({ datos, onCambio, disabled }: { datos: Datos; onCambio: (d: Datos) => void; disabled?: boolean }) {
-  const set = (k: keyof Datos) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => onCambio({ ...datos, [k]: e.target.value })
+// `bloqueoDesarrollo` = la fase Desarrollo ya tiene fechas o avance: solo se impide DESMARCAR la casilla (ADR-0003 §3);
+// si ya está desmarcada (sin guardar), sigue activa para poder volver a marcarla.
+export default function CamposProyecto({ datos, onCambio, disabled, bloqueoDesarrollo }: {
+  datos: Datos
+  onCambio: (d: Datos) => void
+  disabled?: boolean
+  bloqueoDesarrollo?: boolean
+}) {
+  const idAyuda = useId()
+  const set = (k: ClaveTexto) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => onCambio({ ...datos, [k]: e.target.value })
   return (
     <>
       <label className="block">
@@ -37,6 +50,22 @@ export default function CamposProyecto({ datos, onCambio, disabled }: { datos: D
           {ESTADOS.map((e) => <option key={e} value={e}>{ETIQUETA_ESTADO[e]}</option>)}
         </select>
       </label>
+      <div>
+        <label className="flex items-start gap-2 text-sm text-slate-800">
+          <input
+            type="checkbox"
+            className="mt-0.5 h-4 w-4 shrink-0"
+            disabled={disabled || (bloqueoDesarrollo && datos.requiere_desarrollo)}
+            checked={datos.requiere_desarrollo}
+            aria-describedby={idAyuda}
+            onChange={(e) => onCambio({ ...datos, requiere_desarrollo: e.target.checked })}
+          />
+          <span>La implementación se basa en un desarrollo (añade la fase Desarrollo)</span>
+        </label>
+        <p id={idAyuda} className={`text-xs mt-1 ml-6 ${bloqueoDesarrollo ? 'text-amber-700' : 'text-slate-500'}`}>
+          {bloqueoDesarrollo ? MSG_DESARROLLO_BLOQUEADO : 'Marca esta opción si intervienen desarrolladores.'}
+        </p>
+      </div>
     </>
   )
 }
@@ -48,4 +77,5 @@ export const aInput = (d: Datos) => ({
   fecha_inicio: d.fecha_inicio || null,
   fecha_fin_plan: d.fecha_fin_plan || null,
   estado: d.estado,
+  requiere_desarrollo: d.requiere_desarrollo,
 })

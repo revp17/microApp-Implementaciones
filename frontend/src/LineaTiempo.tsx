@@ -3,8 +3,9 @@ import { ETIQUETA_ESTADO, type Proyecto } from './tipos'
 import {
   clasificarFilas, diaDelPlazo, formatoFecha, lugarPorcentaje, marcasEje, parseFecha, porcentajeVisible, posicion, rangoEje, restanteBarra, soloFecha,
   tramoBarra, tramoRetraso,
-  type EstadoBarra,
+  type Eje, type EstadoBarra,
 } from './timeline'
+import { avanceFases, descripcionFases, ETIQUETA_ESTADO_FASE, modoEfectivo, tramosFases, type EstadoFase, type Fase } from './fases.ts'
 
 const COLOR_RELLENO: Record<EstadoBarra, string> = {
   sin_fechas: 'bg-slate-400',
@@ -21,6 +22,44 @@ const COLOR_TEXTO: Record<EstadoBarra, string> = {
   en_curso: 'text-blue-700',
   vencido: 'text-red-700',
   cerrado: 'text-slate-600',
+}
+
+const COLOR_FASE: Record<EstadoFase, string> = {
+  pendiente: 'bg-slate-100 border border-slate-400', // hueco con borde: se distingue del fondo y de los rellenos
+  en_curso: 'bg-blue-400',
+  completada: 'bg-green-600',
+}
+const TITULO_IGUALES = 'Las fases no tienen fechas: reparto en partes iguales'
+
+/** Texto del avance real: «X de T fases completadas» y, si hay, «En curso: …». */
+function textoFases(fases: Fase[]): { resumen: string; enCurso: string } {
+  const av = avanceFases(fases)
+  const nombres = fases.filter((f) => f.estado === 'en_curso').map((f) => f.nombre)
+  return { resumen: `${av.completadas} de ${av.total} fases completadas`, enCurso: nombres.length ? `En curso: ${nombres.join(', ')}` : '' }
+}
+
+/** Carril de fases bajo la barra del plazo (mismo eje x). Los huecos de 2 px son solo separación visual. */
+function CarrilFases({ fases, barra, eje }: { fases: Fase[]; barra: { izq: number; ancho: number } | null; eje: Eje | null }) {
+  if (fases.length === 0) return null
+  const tramos = tramosFases(fases, barra, eje)
+  const porFechas = modoEfectivo(fases, eje) === 'fechas'
+  return (
+    <div
+      role="img"
+      aria-label={`Fases${porFechas ? '' : ' (reparto en partes iguales, sin fechas)'}: ${descripcionFases(fases)}`}
+      title={porFechas ? undefined : TITULO_IGUALES}
+      className="relative w-full h-2.5 mt-1"
+    >
+      {tramos.map((t) => (
+        <span
+          key={t.id}
+          title={`${t.nombre}: ${ETIQUETA_ESTADO_FASE[t.estado]}`}
+          className={`absolute inset-y-0 rounded-sm ${COLOR_FASE[t.estado]}`}
+          style={{ left: `${t.izq}%`, width: `max(1px, calc(${t.ancho}% - 2px))` }}
+        />
+      ))}
+    </div>
+  )
 }
 
 /** Ancla una etiqueta al borde que deje más espacio: no se sale del contenedor ni necesita medirse. */
@@ -74,7 +113,7 @@ export default function LineaTiempo({ proyectos, onAbrir }: { proyectos: Proyect
     <section aria-labelledby="titulo-timeline" className="bg-white rounded-lg shadow-sm p-4 mb-4">
       <h2 id="titulo-timeline" className="font-semibold text-slate-900">Timeline</h2>
       <p className="text-xs text-slate-500 mb-3">
-        El porcentaje es el <strong>avance del plazo</strong> (tiempo transcurrido del plan), no el avance del trabajo.
+        <strong>Avance real</strong>: fases completadas. <strong>Avance del plazo</strong>: tiempo transcurrido del plan.
       </p>
 
       {/* Eje de tiempo común (solo con proyectos con fechas): marcas de mes abajo y la fecha de hoy una sola vez arriba */}
@@ -98,6 +137,8 @@ export default function LineaTiempo({ proyectos, onAbrir }: { proyectos: Proyect
             {filas.map(({ p, r, dibujable }) => {
               if (!eje || !dibujable) {
                 const invertida = r.estado === 'fechas_invertidas'
+                const fx = textoFases(p.fases)
+                const avNd = avanceFases(p.fases)
                 const aviso = invertida
                   ? 'El fin es anterior al inicio · abre el proyecto para corregirlo'
                   : 'Sin fechas planificadas · abre el proyecto para definirlas'
@@ -106,7 +147,7 @@ export default function LineaTiempo({ proyectos, onAbrir }: { proyectos: Proyect
                     <div className="flex flex-wrap items-center gap-x-2">
                       <button
                         className="font-medium text-slate-900 hover:underline text-left min-w-0 max-w-full break-words"
-                        aria-label={`${p.nombre}, cliente ${p.cliente.nombre}, ${ETIQUETA_ESTADO[p.estado]}. ${invertida ? 'Fechas inválidas: el fin es anterior al inicio.' : 'Sin fechas planificadas.'} Abrir detalle.`}
+                        aria-label={`${p.nombre}, cliente ${p.cliente.nombre}, ${ETIQUETA_ESTADO[p.estado]}. ${invertida ? 'Fechas inválidas: el fin es anterior al inicio.' : 'Sin fechas planificadas.'}${avNd.pct !== null ? ` ${p.estado === 'cerrado' ? '' : `Avance real: ${avNd.pct}%, `}${fx.resumen}.${fx.enCurso ? ` ${fx.enCurso}.` : ''}` : ''} Abrir detalle.`}
                         onClick={() => onAbrir(p.id)}
                       >
                         {p.nombre}
@@ -114,8 +155,10 @@ export default function LineaTiempo({ proyectos, onAbrir }: { proyectos: Proyect
                       <span className="text-xs rounded-full bg-slate-100 px-2 py-0.5 text-slate-700 shrink-0">{ETIQUETA_ESTADO[p.estado]}</span>
                     </div>
                     <div className="text-sm text-slate-600 min-w-0 break-words">{p.cliente.nombre}</div>
+                    <AvanceReal fases={p.fases} cerrado={p.estado === 'cerrado'} />
                     <div className="text-sm font-medium text-amber-700 break-words">{aviso}</div>
                     <div aria-hidden="true" onClick={() => onAbrir(p.id)} className="w-full h-8 mt-1 rounded bg-slate-100 cursor-pointer" />
+                    <CarrilFases fases={p.fases} barra={null} eje={null} />
                   </li>
                 )
               }
@@ -131,9 +174,12 @@ export default function LineaTiempo({ proyectos, onAbrir }: { proyectos: Proyect
               const retraso = r.estado === 'vencido' ? tramoRetraso(fin, hoy, eje) : null
               const restante = restanteBarra(r)
               const diaTxt = r.estado === 'en_curso' && plazo ? `Día ${plazo.dia} de ${plazo.total}` : ''
+              const av = avanceFases(p.fases)
+              const fx = textoFases(p.fases)
+              const txtReal = av.pct === null ? '' : `${cerrado ? '' : `Avance real: ${av.pct}%, `}${fx.resumen}.${fx.enCurso ? ` ${fx.enCurso}.` : ''} `
               const descripcion =
                 `${p.nombre}, cliente ${p.cliente.nombre}, ${ETIQUETA_ESTADO[p.estado]}, del ${formatoFecha(p.fecha_inicio)} al ${formatoFecha(p.fecha_fin_plan)}. ` +
-                (cerrado ? 'Proyecto cerrado.' : `Avance del plazo: ${r.pct}%.${diaTxt ? ` ${diaTxt}.` : ''} ${restante}.`)
+                (cerrado ? `Proyecto cerrado. ${txtReal}` : `${txtReal}Avance del plazo: ${r.pct}%.${diaTxt ? ` ${diaTxt}.` : ''} ${restante}.`)
               return (
                 <li key={p.id}>
                   <div className="flex flex-wrap items-center gap-x-2">
@@ -148,19 +194,13 @@ export default function LineaTiempo({ proyectos, onAbrir }: { proyectos: Proyect
                   </div>
                   <div className="text-sm text-slate-600 min-w-0 break-words">{p.cliente.nombre}</div>
 
-                  {/* Avance del plazo, en grande */}
-                  <div className={`flex flex-wrap items-baseline gap-x-2 ${COLOR_TEXTO[r.estado]}`}>
-                    {cerrado ? (
-                      <span className="text-2xl font-bold leading-tight">Cerrado</span>
-                    ) : (
-                      <>
-                        <span className="text-2xl font-bold leading-tight">{r.pct}%</span>
-                        <span className="text-sm font-medium break-words">
-                          Avance del plazo{diaTxt ? ` · ${diaTxt}` : ''}{restante ? ` · ${restante}` : ''}
-                        </span>
-                      </>
-                    )}
-                  </div>
+                  {/* Avance real (fases), en grande; el avance del plazo, en secundario */}
+                  <AvanceReal fases={p.fases} cerrado={cerrado} />
+                  {!cerrado && (
+                    <div className={`text-sm font-medium break-words ${COLOR_TEXTO[r.estado]}`}>
+                      Avance del plazo {r.pct}%{diaTxt ? ` · ${diaTxt}` : ''}{restante ? ` · ${restante}` : ''}
+                    </div>
+                  )}
 
                   {/* Barra decorativa: el control de teclado es el nombre; la barra solo añade clic con ratón/táctil */}
                   <div aria-hidden="true" onClick={() => onAbrir(p.id)} className="relative w-full h-8 mt-1 cursor-pointer">
@@ -189,6 +229,7 @@ export default function LineaTiempo({ proyectos, onAbrir }: { proyectos: Proyect
                     )}
                     <span className="absolute inset-y-0 w-0.5 bg-red-600 -translate-x-1/2" style={{ left: `${posHoy}%` }} />
                   </div>
+                  <CarrilFases fases={p.fases} barra={{ izq, ancho }} eje={eje} />
 
                   {/* Fechas completas pegadas a los extremos de la barra (apiladas para no solaparse) */}
                   <div className="relative h-9 mt-0.5 text-xs text-slate-700" aria-hidden="true">
@@ -201,5 +242,22 @@ export default function LineaTiempo({ proyectos, onAbrir }: { proyectos: Proyect
       </ul>
 
     </section>
+  )
+}
+
+/** Cifra principal: «Avance real N %» + «X de T fases completadas» (o «Cerrado» + el mismo subtexto). */
+function AvanceReal({ fases, cerrado }: { fases: Fase[]; cerrado: boolean }) {
+  const av = avanceFases(fases)
+  const fx = textoFases(fases)
+  if (!cerrado && av.pct === null) return null
+  return (
+    <div className={`flex flex-wrap items-baseline gap-x-2 ${cerrado ? 'text-slate-600' : 'text-green-800'}`}>
+      <span className="text-2xl font-bold leading-tight">{cerrado ? 'Cerrado' : `Avance real ${av.pct}%`}</span>
+      {av.pct !== null && (
+        <span className="text-sm font-medium break-words">
+          {fx.resumen}{fx.enCurso ? ` · ${fx.enCurso}` : ''}
+        </span>
+      )}
+    </div>
   )
 }
