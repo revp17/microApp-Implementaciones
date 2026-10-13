@@ -1,10 +1,10 @@
 # Módulos
 
-Orden sugerido de construcción (MVP primero): `[ ]` pendiente.
+Orden sugerido de construcción (MVP primero): `[ ]` pendiente · `[x]` hecho.
 
-1. [ ] **Proyectos** — datos generales, cliente, sistema/ERP, fechas, estado
+1. [x] **Proyectos** — datos generales, cliente, sistema/ERP, fechas, estado (+ miembros y timeline en la pantalla principal; hecho 2026-10-11, ver [[Funcionamiento-App]])
 2. [ ] **Alcance** — entregables y exclusiones, baseline
-3. [ ] **Fases** — plantilla de fases (levantamiento, diseño, configuración, pruebas, capacitación, Go-Live, cierre)
+3. [x] **Fases** — plantilla de fases (levantamiento, diseño, configuración, pruebas, capacitación, Go-Live, cierre) + Desarrollo condicional y avance real (hecho 2026-10-13, ver [[ADR-0003-fases]] y [[Funcionamiento-App]] v0.3)
 4. [ ] **Tareas** — responsable, fechas, estado, bloqueos, dependencias
 5. [ ] **Requerimientos** — trazables a tareas y pruebas
 6. [ ] **Riesgos** — probabilidad/impacto, mitigación
